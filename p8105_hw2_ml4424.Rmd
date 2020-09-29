@@ -13,7 +13,7 @@ library(tidyverse)
 ```
 
 ```{r read and clean mr trash w}
-trash = read_excel("./prob1_data/Trash-Wheel-Collection-Totals-8-6-19.xlsx", 
+trash = read_excel("prob1_data/Trash-Wheel-Collection-Totals-8-6-19.xlsx", 
                    sheet = "Mr. Trash Wheel",
                    cell_cols("A:N")) %>% 
   janitor::clean_names() %>% 
@@ -24,7 +24,7 @@ trash
 ```
 
 ```{r read and clean precip 2017 2018}
-precip_17 = read_excel("./prob1_data/Trash-Wheel-Collection-Totals-8-6-19.xlsx", 
+precip_17 = read_excel("prob1_data/Trash-Wheel-Collection-Totals-8-6-19.xlsx", 
                    sheet = "2017 Precipitation",
                    skip = 1) %>% 
   janitor::clean_names() %>% 
@@ -33,7 +33,7 @@ precip_17 = read_excel("./prob1_data/Trash-Wheel-Collection-Totals-8-6-19.xlsx",
   
 precip_17
 
-precip_18 = read_excel("./prob1_data/Trash-Wheel-Collection-Totals-8-6-19.xlsx", 
+precip_18 = read_excel("prob1_data/Trash-Wheel-Collection-Totals-8-6-19.xlsx", 
                    sheet = "2018 Precipitation",
                    skip = 1) %>% 
   janitor::clean_names() %>% 
@@ -46,8 +46,61 @@ precip_18
 precip_17_18 <- bind_rows(precip_17, precip_18) %>%
   mutate(month = month.name[month])
 ```
-Description of Mr. Trash Wheel and Precipitation Data: ________________
+**Description of Mr. Trash Wheel and Precipitation Data:** ________________
 
 
 ## Problem 2
+
+```{r read and clean NYC transit data}
+transit_dta <- read_csv("prob2_data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv") %>% 
+  janitor::clean_names() %>% 
+  dplyr::select(line, station_name, station_latitude, station_longitude, starts_with("route"),
+                entry, vending, entrance_type, ada) %>% # select relevant p columns
+  mutate(entry = ifelse(entry == "YES", TRUE, FALSE)) # logical vector
+
+```
+
+**Description:** These data describe NYC subway station characteristics. In the cleaned data, each row represents a unique subway station's entrance or exit in NYC. From the raw data, we have kept relevant identifying information on the subway line served, the name of the station, the latitude and longitude coordinates, the routes served by the specific station, whether or not a specific entrance/exit allows entry or is just exit-only, the mode of entrance into the station, and whether or not it is ADA compliant. We further cleaned the data by converting entry to a logical T/F given whether or not the entrance allows entry (TRUE) or is exit-only (FALSE). The dimensions are 1,868 rows by 19 columns. These data are not tidy; the route information is spread across 11 columns.
+
+
+```{r answer following questions using these data}
+# distinct stations
+distinct_stn <- distinct(transit_dta, line, station_name) %>% nrow()
+
+# number of ADA compliant stations (up one level from entrance/exits at stations)
+ADA_comp <- transit_dta %>% 
+  select(line, station_name, ada) %>% # drop all other columns of station sublevels, only interested in station-level attributes
+  distinct() %>% 
+  filter(ada == T) %>% nrow()
+ADA_comp
+
+# proportion of entrance/exits without vending allow entrance
+entry_no_vend <- transit_dta %>% 
+  filter(vending == "NO", 
+         entry == T) %>% nrow()
+```
+
+There are `r distinct_stn` distinct stations. Out of these stations, `r ADA_comp` are ADA-compliant. Of all station entrance/exits without vending, `r entry_no_vend` allow entrance.
+
+```{r reformat so route number and name are distinct vars}
+tidy_transit <- transit_dta %>% 
+  mutate_if(is.numeric, as.character) %>%  # convert numeric route columns to characters to avoid errors later
+  pivot_longer(route1:route11,
+               names_to = "route",
+               values_to = "route_name") %>%
+  drop_na() %>%  # drop NA rows, these are extra rows that don't contain route at specific station entrance/exit when we tidied data
+  distinct(line, station_name, route_name,
+           .keep_all = TRUE) # pull distinct line, station_name, and routes at these stations
+tidy_transit
+
+
+# how many distinct stations serve the A train
+A_stns <- tidy_transit %>% filter(route_name == "A") 
+
+# ADA compliant A train stations
+ADA_A_stns <- A_stns %>% filter(ada == TRUE) %>% nrow()
+ADA_A_stns
+```
+
+There are `r A_stns %>% nrow()` that serve the A train. Of these stations, `r ADA_A_stns` are ADA compliant.
 
