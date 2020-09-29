@@ -2,7 +2,7 @@
 title: "p8105_hw2_ml4424"
 author: "Maggie Li (ml4424)"
 date: "9/28/2020"
-output: html_document
+output: github_document
 ---
 
 ## Problem 1
@@ -45,6 +45,7 @@ precip_18
 # bind tbls
 precip_17_18 <- bind_rows(precip_17, precip_18) %>%
   mutate(month = month.name[month])
+precip_17_18
 ```
 **Description of Mr. Trash Wheel and Precipitation Data:** ________________
 
@@ -103,4 +104,35 @@ ADA_A_stns
 ```
 
 There are `r A_stns %>% nrow()` that serve the A train. Of these stations, `r ADA_A_stns` are ADA compliant.
+
+## Problem 3
+
+```{r clean pols-month data}
+pols_month <- read_csv("prob3_data/fivethirtyeight_datasets/pols-month.csv") %>% 
+  janitor::clean_names() %>% 
+  separate(mon, c("year", "month", "date")) %>%
+  mutate(month = month.name[as.integer(month)]) %>% 
+  pivot_longer(cols = starts_with("prez"),
+               names_to = "president",
+               names_prefix = "prez_") %>% 
+  select(-date, -value)
+```
+
+```{r clean snp.csv file}
+snp_dta <- read_csv("prob3_data/fivethirtyeight_datasets/snp.csv") %>% 
+  janitor::clean_names() %>% 
+  separate(date, c("month", "date", "year")) %>%
+  select(year, month, close)
+```
+
+```{r tidy unemploy dta}
+unemp_dta <- read_csv("prob3_data/fivethirtyeight_datasets/unemployment.csv") %>% 
+  janitor::clean_names() %>%
+  rename_at(vars(tolower(month.abb)), ~month.name) %>% 
+  pivot_longer(January:December,
+               names_to = "month") %>% 
+  mutate(month = as.character(match(month, month.name)), # coerce month name to month number
+         year = as.character(year)) # coerce year to character to match previous datasets
+unemp_dta
+```
 
