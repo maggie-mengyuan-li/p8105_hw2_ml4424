@@ -1,0 +1,53 @@
+---
+title: "p8105_hw2_ml4424"
+author: "Maggie Li (ml4424)"
+date: "9/28/2020"
+output: html_document
+---
+
+## Problem 1
+
+```{r}
+library(readxl)
+library(tidyverse)
+```
+
+```{r read and clean mr trash w}
+trash = read_excel("./prob1_data/Trash-Wheel-Collection-Totals-8-6-19.xlsx", 
+                   sheet = "Mr. Trash Wheel",
+                   cell_cols("A:N")) %>% 
+  janitor::clean_names() %>% 
+  drop_na(year) %>% #drop rows with NAs that are just totals; not dumpster-specific
+  mutate(rnd_sb = as.integer(round(sports_balls, 0)))
+  
+trash
+```
+
+```{r read and clean precip 2017 2018}
+precip_17 = read_excel("./prob1_data/Trash-Wheel-Collection-Totals-8-6-19.xlsx", 
+                   sheet = "2017 Precipitation",
+                   skip = 1) %>% 
+  janitor::clean_names() %>% 
+  drop_na(month) %>% 
+  mutate(year = 2017)
+  
+precip_17
+
+precip_18 = read_excel("./prob1_data/Trash-Wheel-Collection-Totals-8-6-19.xlsx", 
+                   sheet = "2018 Precipitation",
+                   skip = 1) %>% 
+  janitor::clean_names() %>% 
+  drop_na(month) %>% 
+  mutate(year = 2018)
+  
+precip_18
+
+# bind tbls
+precip_17_18 <- bind_rows(precip_17, precip_18) %>%
+  mutate(month = month.name[month])
+```
+Description of Mr. Trash Wheel and Precipitation Data: ________________
+
+
+## Problem 2
+
