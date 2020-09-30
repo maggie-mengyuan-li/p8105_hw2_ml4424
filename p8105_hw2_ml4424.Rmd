@@ -46,8 +46,18 @@ precip_18
 precip_17_18 <- bind_rows(precip_17, precip_18) %>%
   mutate(month = month.name[month])
 precip_17_18
+
+# total precip in 2018
+tot_precip_18 <- precip_18 %>% summarize(sum(total))
+
+# median sports balls in dumpster in 2017 (i assume we are pulling from the rounded sports ball col)
+median_sb <- trash %>% filter(year == 2017) %>%
+  summarize(median(rnd_sb))
+median_sb
 ```
-**Description of Mr. Trash Wheel and Precipitation Data:** ________________
+**Description of Mr. Trash Wheel and Precipitation Data:** The Mr. Trash Wheel data are formatted so that each entry specifies a dumpster filled by the vessel, including the date which a full dumpster of trash was collected and columns with details on the waste weight, volume and materials composition, as well as homes powered when the dumpster is transported to a waste-to-energy plant to create electricity. There are 344 observations, meaning there have been 344 dumpsters filled by the contraption between May 2014 and June 2019.
+
+The precipitation data for 2017 and 2018 contain monthly precipitation (inches of rainfall). There are 24 observations in the data, one row for every month in these two years. The total precipitation was `r tot_precip_18` inches. The mean number of sports balls collected in a dumpster in 2017 was `r median_sb`.
 
 
 ## Problem 2
@@ -108,31 +118,48 @@ There are `r A_stns %>% nrow()` that serve the A train. Of these stations, `r AD
 ## Problem 3
 
 ```{r clean pols-month data}
-pols_month <- read_csv("prob3_data/fivethirtyeight_datasets/pols-month.csv") %>% 
+pols <- read_csv("prob3_data/fivethirtyeight_datasets/pols-month.csv") %>% 
   janitor::clean_names() %>% 
   separate(mon, c("year", "month", "date")) %>%
-  mutate(month = month.name[as.integer(month)]) %>% 
+  mutate(month = month.name[as.integer(month)]) %>% # replace month number with month name
   pivot_longer(cols = starts_with("prez"),
                names_to = "president",
-               names_prefix = "prez_") %>% 
-  select(-date, -value)
+               values_to = "party",
+               names_prefix = "prez_") %>% # wide to long format for president & party
+  filter(party >= 1) %>% # we've duplicated each month/year combination, so we want to get rid of duplicates                           # (party = 0); i.e. keep 1 (yes) and weird 2 values during Watergate(?)
+  select(-date, -party) # only keep year and month as leading key cols
+pols
 ```
 
 ```{r clean snp.csv file}
-snp_dta <- read_csv("prob3_data/fivethirtyeight_datasets/snp.csv") %>% 
+snp <- read_csv("prob3_data/fivethirtyeight_datasets/snp.csv") %>% 
   janitor::clean_names() %>% 
   separate(date, c("month", "date", "year")) %>%
-  select(year, month, close)
+  select(year, month, close) %>%
+  mutate(month = month.name[as.integer(month)])
+snp
 ```
 
 ```{r tidy unemploy dta}
-unemp_dta <- read_csv("prob3_data/fivethirtyeight_datasets/unemployment.csv") %>% 
+unemployment <- read_csv("prob3_data/fivethirtyeight_datasets/unemployment.csv") %>% 
   janitor::clean_names() %>%
   rename_at(vars(tolower(month.abb)), ~month.name) %>% 
   pivot_longer(January:December,
                names_to = "month") %>% 
-  mutate(month = as.character(match(month, month.name)), # coerce month name to month number
-         year = as.character(year)) # coerce year to character to match previous datasets
-unemp_dta
+  mutate(year = as.character(year)) # coerce year to character to match previous datasets
+unemployment
 ```
 
+```{r join data}
+# merge snp to pols and merge unemployment into this
+joined_dta <- left_join(pols, snp) %>% left_join(unemployment)
+joined_dta
+```
+
+**Description**: The pols dataset contains 822 rows for each month in every year between January 1947 and June 2015 (68 years * 12 months + 6 months), and several columns for number of republican or democratic governors, national senators and representatives, and two columns signifying whether or not the sitting president was dem or gop (1/0) that month. We mutated the data so that *president* was the identifying column, and dem or gop were the potential values for this column. The final dimensions were 822 x 9.
+
+The snp data contain 787 rows for each month in every year between January 1950 and July 2015 (65 years * 12 months + 7 months), and a column indicating the closing values of the S&P stock on a specified date during the observation month, between the 1st and 4th date of the month. We transformed the data so it would be in the same format as the pols dataset, parsing out the *date* column into *year* and *month* and replacing month number with month name. The final dimensions were 787 x 3.
+
+The final unemployment data contains the unemployment rate for every month between January 1948 and December 2015. In the original data, there were 68 rows for each of these 68 years, with columns indicating the unemployment rate for each month of the year. We tidied this data so that every row instead was a month of a given year and the final dimension was n = 816 (68 years * 12 months), and the *value* column indicated that month's unemployment rate. The final dimensions were 816 x 3.
+
+In the final joined dataset, we had 822 rows from the pols dataset, so every row represented a month within the study period between January 1947 and June 2015, with additional columns for monthly S&P stock data and unemployment rate which we joined to the pols data. There are NA values for the months that were missing S&P and/or unemployment data in 1947-1949.
