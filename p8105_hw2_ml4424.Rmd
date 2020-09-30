@@ -4,13 +4,15 @@ author: "Maggie Li (ml4424)"
 date: "9/28/2020"
 output: github_document
 ---
-
-## Problem 1
+## Read in libraries
 
 ```{r}
 library(readxl)
 library(tidyverse)
 ```
+
+
+## Problem 1
 
 ```{r read and clean mr trash w}
 trash = read_excel("prob1_data/Trash-Wheel-Collection-Totals-8-6-19.xlsx", 
@@ -50,7 +52,7 @@ precip_17_18
 # total precip in 2018
 tot_precip_18 <- precip_18 %>% summarize(sum(total))
 
-# median sports balls in dumpster in 2017 (i assume we are pulling from the rounded sports ball col)
+# median sports balls in dumpster in 2017 (i assume we are pulling from the rounded sports ball column)
 median_sb <- trash %>% filter(year == 2017) %>%
   summarize(median(rnd_sb))
 median_sb
@@ -68,7 +70,7 @@ transit_dta <- read_csv("prob2_data/NYC_Transit_Subway_Entrance_And_Exit_Data.cs
   dplyr::select(line, station_name, station_latitude, station_longitude, starts_with("route"),
                 entry, vending, entrance_type, ada) %>% # select relevant p columns
   mutate(entry = ifelse(entry == "YES", TRUE, FALSE)) # logical vector
-
+transit_dta
 ```
 
 **Description:** These data describe NYC subway station characteristics. In the cleaned data, each row represents a unique subway station's entrance or exit in NYC. From the raw data, we have kept relevant identifying information on the subway line served, the name of the station, the latitude and longitude coordinates, the routes served by the specific station, whether or not a specific entrance/exit allows entry or is just exit-only, the mode of entrance into the station, and whether or not it is ADA compliant. We further cleaned the data by converting entry to a logical T/F given whether or not the entrance allows entry (TRUE) or is exit-only (FALSE). The dimensions are 1,868 rows by 19 columns. These data are not tidy; the route information is spread across 11 columns.
@@ -93,7 +95,7 @@ entry_no_vend <- transit_dta %>%
 
 There are `r distinct_stn` distinct stations. Out of these stations, `r ADA_comp` are ADA-compliant. Of all station entrance/exits without vending, `r entry_no_vend` allow entrance.
 
-```{r reformat so route number and name are distinct vars}
+```{r reformat so route number and name are distinct vars; A train questions}
 tidy_transit <- transit_dta %>% 
   mutate_if(is.numeric, as.character) %>%  # convert numeric route columns to characters to avoid errors later
   pivot_longer(route1:route11,
@@ -126,7 +128,8 @@ pols <- read_csv("prob3_data/fivethirtyeight_datasets/pols-month.csv") %>%
                names_to = "president",
                values_to = "party",
                names_prefix = "prez_") %>% # wide to long format for president & party
-  filter(party >= 1) %>% # we've duplicated each month/year combination, so we want to get rid of duplicates                           # (party = 0); i.e. keep 1 (yes) and weird 2 values during Watergate(?)
+  filter(party >= 1) %>% # we've duplicated each month/year combination, so we want to get rid of duplicates                           
+                          # (party = 0); i.e. keep 1 (yes) and weird 2 values during Watergate(?)
   select(-date, -party) # only keep year and month as leading key cols
 pols
 ```
@@ -160,6 +163,6 @@ joined_dta
 
 The snp data contain 787 rows for each month in every year between January 1950 and July 2015 (65 years * 12 months + 7 months), and a column indicating the closing values of the S&P stock on a specified date during the observation month, between the 1st and 4th date of the month. We transformed the data so it would be in the same format as the pols dataset, parsing out the *date* column into *year* and *month* and replacing month number with month name. The final dimensions were 787 x 3.
 
-The final unemployment data contains the unemployment rate for every month between January 1948 and December 2015. In the original data, there were 68 rows for each of these 68 years, with columns indicating the unemployment rate for each month of the year. We tidied this data so that every row instead was a month of a given year and the final dimension was n = 816 (68 years * 12 months), and the *value* column indicated that month's unemployment rate. The final dimensions were 816 x 3.
+The final unemployment data contains the unemployment rate for every month between January 1948 and December 2015. In the original data, there were 68 rows for each of these 68 years, with columns indicating the unemployment rate for each month of the year. We tidied this data so that every row instead was a month of a given year and the final dimension was n = 816 (68 years * 12 months), and the *value* column indicated that monthly unemployment rate. The final dimensions were 816 x 3.
 
-In the final joined dataset, we had 822 rows from the pols dataset, so every row represented a month within the study period between January 1947 and June 2015, with additional columns for monthly S&P stock data and unemployment rate which we joined to the pols data. There are NA values for the months that were missing S&P and/or unemployment data in 1947-1949.
+We were able to join all three datasets on key variables *year* and *month*. In the final joined dataset, we had 822 rows from the pols dataset, so every row represented a month within the study period between January 1947 and June 2015, with additional columns for monthly S&P stock data and unemployment rate which we joined to the pols data. There are NA values for the months that were missing S&P and/or unemployment data in 1947-1949.
